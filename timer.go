@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"time"
 	"sync"
+	"time"
 )
 
 type mutexCounter struct {
-	mu sync.Mutex
-	x int64
+	mu  sync.Mutex
+	x   int64
 	mas []int
 }
 
@@ -19,31 +19,36 @@ func (c *mutexCounter) Increment(x int64, i int) {
 	c.mu.Unlock()
 }
 
-func (c *mutexCounter) Value() (x int64){
+func (c *mutexCounter) Value() (x int64) {
 	c.mu.Lock()
 	x = c.x
 	c.mu.Unlock()
 	return
 }
-/*
-type intCounter int64
 
-func (c *intCounter) Add(x int64){
-	*c++
-}*/
+type nomutCounter struct {
+	x int64
+	mas []int
+}
+
+func (c *nomutCounter) Add(x int64, i int){
+	c.x += x
+	c.mas[i] += 1
+}
 
 func main() {
+	//counter := nomutCounter{}
 	counter := mutexCounter{}
-	counter.mas = make([]int, 21)
-	for i:= 0; i < 20; i++{
-		//counter.mas = append(counter.mas, i)
-		go func(no int){
-			for j:= 0; j < 10000000; j++{
-				counter.Increment(1, i)
+	counter.mas = make([]int, 20)
+	for i := 0; i < 20; i++ {
+		go func(no int) {
+			for j := 0; j < 10000000; j++ {
+				counter.Increment(1, no)
+				//counter.Add(1, no)
 			}
 		}(i)
 	}
 	time.Sleep(time.Second * 5)
-	fmt.Println(counter.Value())
+	fmt.Println(counter.x)
 	fmt.Println(counter.mas)
 }
