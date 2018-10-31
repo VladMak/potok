@@ -3,41 +3,47 @@ package main
 import (
 	"fmt"
 	"time"
+	"sync"
 )
 
-func timer(bol *bool) {
-	tim := time.Tick(time.Second * 5)
-	for _ = range tim {
-		fmt.Println("TIMER STOP 1")
-		*bol = false
-	}
-	fmt.Println("TIMER STOP")
-	*bol = false
+type mutexCounter struct {
+	mu sync.Mutex
+	x int64
+	mas []int
 }
 
-func thread(id int, c chan int, bol *bool){
-	fmt.Println(id)
-	for i := 0; ; i++ {
-		if !*bol{
-			fmt.Println("Thread STOP")
-			fmt.Println(i)
-			c <- i
-			break
-		}
-	}
+func (c *mutexCounter) Increment(x int64, i int) {
+	c.mu.Lock()
+	c.x += x
+	c.mas[i] += 1
+	c.mu.Unlock()
 }
+
+func (c *mutexCounter) Value() (x int64){
+	c.mu.Lock()
+	x = c.x
+	c.mu.Unlock()
+	return
+}
+/*
+type intCounter int64
+
+func (c *intCounter) Add(x int64){
+	*c++
+}*/
 
 func main() {
-	var bol bool = true
-	var c chan int = make(chan int)
-	go timer(&bol)
-
-	for i := 0; i < 1; i++ {
-		go thread(i, c, &bol)
+	counter := mutexCounter{}
+	counter.mas = make([]int, 21)
+	for i:= 0; i < 20; i++{
+		//counter.mas = append(counter.mas, i)
+		go func(no int){
+			for j:= 0; j < 10000000; j++{
+				counter.Increment(1, i)
+			}
+		}(i)
 	}
-
-	var input string
-	fmt.Scanln(&input)
-	fmt.Println("Thats all")
-	fmt.Println(<- c)
+	time.Sleep(time.Second * 5)
+	fmt.Println(counter.Value())
+	fmt.Println(counter.mas)
 }
